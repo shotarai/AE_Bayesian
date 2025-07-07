@@ -29,7 +29,7 @@ class BayesianPriorAnalyzer:
             cv_summary_path: Path to CV summary CSV
         """
         self.cv_results = pd.read_csv(cv_results_path)
-        # CV要約はマルチインデックスヘッダーなので特別な処理が必要
+        # CV summary requires special handling due to multi-index headers
         self.cv_summary = pd.read_csv(cv_summary_path, header=[0, 1], index_col=0)
         self.metrics = ['mae', 'rmse', 'lpd']
         self.models = ['Meta-analytical', 'GPT-4 Blind', 'GPT-4 Disease-Informed']
@@ -347,11 +347,11 @@ def main():
     analyzer = BayesianPriorAnalyzer(cv_results_path, cv_summary_path)
     
     # Perform statistical tests
-    print("統計的有意性テストを実行中...")
+    print("Performing statistical significance tests...")
     stats_results = analyzer.perform_statistical_tests()
     
     # Create visualizations
-    print("包括的な可視化を生成中...")
+    print("Generating comprehensive visualizations...")
     analyzer.create_comprehensive_plots(save_dir=plots_dir)
     
     # Generate statistical report

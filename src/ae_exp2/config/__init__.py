@@ -1,7 +1,7 @@
 """
-設定モジュール
+Configuration Module
 
-実験パラメータと設定を管理します。
+Manages experimental parameters and settings.
 """
 
 from .experiment_config import (

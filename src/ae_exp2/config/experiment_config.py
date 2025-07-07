@@ -1,11 +1,11 @@
 """
-実験設定ファイル - マジックナンバーを排除
+Experimental Configuration File - Magic Number Elimination
 """
 
 import os
 from pathlib import Path
 
-# ディレクトリ設定
+# Directory configuration
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 RESULTS_DIR = PROJECT_ROOT / "results"
 PLOTS_DIR = RESULTS_DIR / "plots"
@@ -13,11 +13,11 @@ DATA_DIR = RESULTS_DIR / "data"
 REPORTS_DIR = RESULTS_DIR / "reports"
 CONFIG_DIR = PROJECT_ROOT / "src" / "ae_exp2" / "config"
 
-# ディレクトリ作成
+# Create directories
 for dir_path in [RESULTS_DIR, PLOTS_DIR, DATA_DIR, REPORTS_DIR, CONFIG_DIR]:
     dir_path.mkdir(exist_ok=True)
 
-# モデル設定
+# Model configuration
 MODEL_CONFIG = {
     "meta_analytical": {
         "name": "Meta-analytical Prior",
@@ -33,32 +33,32 @@ MODEL_CONFIG = {
     }
 }
 
-# 実験パラメータ
+# Experimental parameters
 EXPERIMENT_CONFIG = {
     "sample_sizes": [10, 20, 30, 50, 75, 100],
     "mcmc_samples": 1000,
     "mcmc_tune": 1000,
     "random_seed": 42,
-    "n_experiments": 5  # 複数回実行で安定性確認
+    "n_experiments": 5  # Multiple runs for stability verification
 }
 
-# GPT-4設定
+# GPT-4 configuration
 GPT4_CONFIG = {
     "model": "gpt-4",
     "max_tokens": 1500,
-    "temperature": 0.1,  # より一貫した回答のため低く設定
+    "temperature": 0.1,  # Set low for more consistent responses
     "max_retries": 3,
     "timeout": 30
 }
 
-# 性能評価設定
+# Performance evaluation configuration
 EVALUATION_CONFIG = {
     "metrics": ["mae", "rmse", "lpd"],
-    "baseline_performance_levels": [0.8, 1.0, 1.2, 1.5],  # ベースライン性能レベル
+    "baseline_performance_levels": [0.8, 1.0, 1.2, 1.5],  # Baseline performance levels
     "significance_level": 0.05
 }
 
-# 可視化設定
+# Visualization configuration
 PLOT_CONFIG = {
     "style": "seaborn-v0_8",
     "figsize": (12, 8),

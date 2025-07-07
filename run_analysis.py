@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 """
-改良版分析のランナースクリプト
+Improved Analysis Runner Script
 """
 
 import sys
 from pathlib import Path
 
-# プロジェクトルートをPythonパスに追加
+# Add project root to Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
 from ae_exp2.analysis.improved_analysis import ImprovedPriorComparisonAnalysis
 
 def main():
-    """メイン実行関数"""
+    """Main execution function"""
     print("=" * 60)
-    print("改良版詳細分析")
+    print("Improved Detailed Analysis")
     print("=" * 60)
     
-    # 分析インスタンスを作成
+    # Create analysis instance
     analyzer = ImprovedPriorComparisonAnalysis()
     
-    # 分析実行
+    # Execute analysis
     summary_stats = analyzer.run_comprehensive_analysis()
     
-    print("\n分析完了！結果は results ディレクトリに保存されました。")
+    print("\nAnalysis completed! Results saved in results directory.")
     
     return summary_stats
 

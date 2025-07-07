@@ -1,7 +1,7 @@
 """
-分析モジュール
+Analysis Module
 
-実験結果の統計分析と可視化を含みます。
+Contains statistical analysis and visualization of experimental results.
 """
 
 from .improved_analysis import ImprovedPriorComparisonAnalysis

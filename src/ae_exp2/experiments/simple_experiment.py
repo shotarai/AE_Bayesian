@@ -1,5 +1,5 @@
 """
-簡略版のBayesian Prior比較実験
+Simplified Bayesian Prior Comparison Experiment
 """
 
 import os
@@ -14,27 +14,27 @@ from scipy.special import gammaln
 import warnings
 warnings.filterwarnings('ignore')
 
-# 環境変数をロード
+# Load environment variables
 load_dotenv()
 
 class SimpleBayesianExperiment:
-    """簡略版の有害事象（AE）報告率のベイズ実験クラス"""
+    """Simplified adverse event (AE) reporting rate Bayesian experiment class"""
     
     def __init__(self, data_path='data.csv'):
-        """初期化"""
+        """Initialize the experiment"""
         self.data = pd.read_csv(data_path)
         self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.process_data()
         
     def process_data(self):
-        """データの前処理を行う"""
-        # 施設ごとのAE報告率を計算
+        """Perform data preprocessing"""
+        # Calculate AE reporting rate for each site
         self.site_stats = self.data.groupby('site_number').agg({
             'patnum': 'nunique',
             'ae_count_cumulative': 'sum'
         }).reset_index()
         
-        # AE報告率（λ）を計算
+        # Calculate AE reporting rate (λ)
         self.site_stats['ae_rate'] = (
             self.site_stats['ae_count_cumulative'] / 
             self.site_stats['patnum']
@@ -45,7 +45,7 @@ class SimpleBayesianExperiment:
         print(self.site_stats['ae_rate'].describe())
     
     def get_gpt4_prior(self):
-        """GPT-4から事前分布のパラメータを取得"""
+        """Obtain prior distribution parameters from GPT-4"""
         print("\n=== Querying GPT-4 for Prior Distribution ===")
         
         data_summary = f"""
@@ -85,7 +85,7 @@ class SimpleBayesianExperiment:
             print("GPT-4 Response:")
             print(response_text)
             
-            # JSONレスポンスを抽出
+            # Extract JSON response
             if '```json' in response_text:
                 json_start = response_text.find('```json') + 7
                 json_end = response_text.find('```', json_start)
@@ -109,7 +109,7 @@ class SimpleBayesianExperiment:
             }
     
     def run_model_a(self, n_samples=20):
-        """モデルA: Meta-analytical prior"""
+        """Model A: Meta-analytical prior"""
         print(f"\n=== Model A: Meta-analytical Prior (n={n_samples}) ===")
         
         sample_data = self.site_stats.sample(n=min(n_samples, len(self.site_stats)), 
@@ -120,29 +120,29 @@ class SimpleBayesianExperiment:
         n_sites = len(sample_data)
         
         with pm.Model() as model_a:
-            # 非情報的事前分布
+            # Non-informative priors
             alpha_study = pm.Exponential('alpha_study', lam=0.1)
             beta_study = pm.Exponential('beta_study', lam=0.1)
             
-            # 各施設のAE報告率
+            # AE reporting rate for each site
             lambda_sites = pm.Gamma('lambda_sites', 
                                   alpha=alpha_study, 
                                   beta=beta_study, 
                                   shape=n_sites)
             
-            # 尤度
+            # Likelihood
             ae_counts = pm.Poisson('ae_counts', 
                                  mu=lambda_sites * observed_patients,
                                  observed=observed_ae)
             
-            # サンプリング
+            # Sampling
             trace_a = pm.sample(500, tune=500, return_inferencedata=True, 
                               random_seed=42, progressbar=False)
         
         return model_a, trace_a, sample_data
     
     def run_model_b(self, n_samples=20, gpt_priors=None):
-        """モデルB: GPT-4 prior"""
+        """Model B: GPT-4 prior"""
         print(f"\n=== Model B: GPT-4 Prior (n={n_samples}) ===")
         
         if gpt_priors is None:
@@ -156,7 +156,7 @@ class SimpleBayesianExperiment:
         n_sites = len(sample_data)
         
         with pm.Model() as model_b:
-            # GPT-4推奨の事前分布
+            # GPT-4 recommended prior distribution
             alpha_prior = gpt_priors['alpha_prior']
             beta_prior = gpt_priors['beta_prior']
             
@@ -167,25 +167,25 @@ class SimpleBayesianExperiment:
                                 alpha=beta_prior['parameters'][0],
                                 beta=beta_prior['parameters'][1])
             
-            # 各施設のAE報告率
+            # AE reporting rate for each site
             lambda_sites = pm.Gamma('lambda_sites',
                                   alpha=alpha_study,
                                   beta=beta_study,
                                   shape=n_sites)
             
-            # 尤度
+            # Likelihood
             ae_counts = pm.Poisson('ae_counts',
                                  mu=lambda_sites * observed_patients,
                                  observed=observed_ae)
             
-            # サンプリング
+            # Sampling
             trace_b = pm.sample(500, tune=500, return_inferencedata=True,
                               random_seed=42, progressbar=False)
         
         return model_b, trace_b, sample_data, gpt_priors
     
     def evaluate_model(self, model, trace, sample_data):
-        """モデルの評価"""
+        """Model evaluation"""
         with model:
             ppc = pm.sample_posterior_predictive(trace, random_seed=42, progressbar=False)
         
@@ -193,11 +193,11 @@ class SimpleBayesianExperiment:
         predicted = ppc.posterior_predictive['ae_counts'].values
         pred_mean = np.mean(predicted, axis=(0, 1))
         
-        # 性能指標の計算
+        # Calculate performance metrics
         mae = np.mean(np.abs(observed - pred_mean))
         rmse = np.sqrt(np.mean((observed - pred_mean)**2))
         
-        # 対数予測密度
+        # Log predictive density
         lpd = 0
         for i, obs in enumerate(observed):
             pred_lambda = sample_data.iloc[i]['patnum'] * np.mean(trace.posterior['lambda_sites'].values[:, :, i])
@@ -209,10 +209,10 @@ class SimpleBayesianExperiment:
         return {'mae': mae, 'rmse': rmse, 'lpd': lpd}
     
     def compare_models(self, sample_sizes=[10, 20, 30]):
-        """モデル比較"""
+        """Model comparison"""
         print("\n=== Model Comparison ===")
         
-        # GPT-4 priorを事前に取得
+        # Obtain GPT-4 prior in advance
         gpt_priors = self.get_gpt4_prior()
         
         results = []
@@ -221,11 +221,11 @@ class SimpleBayesianExperiment:
             print(f"\n--- Sample size: {n_samples} ---")
             
             try:
-                # モデルA
+                # Model A
                 model_a, trace_a, sample_data_a = self.run_model_a(n_samples)
                 perf_a = self.evaluate_model(model_a, trace_a, sample_data_a)
                 
-                # モデルB
+                # Model B
                 model_b, trace_b, sample_data_b, _ = self.run_model_b(n_samples, gpt_priors)
                 perf_b = self.evaluate_model(model_b, trace_b, sample_data_b)
                 
@@ -252,17 +252,17 @@ class SimpleBayesianExperiment:
                 print(f"Error with sample size {n_samples}: {e}")
                 continue
         
-        # 結果をDataFrameに変換
+        # Convert results to DataFrame
         results_df = pd.DataFrame(results)
         
-        # プロット作成
+        # Create plots
         if not results_df.empty:
             self.plot_results(results_df)
         
         return results_df
     
     def plot_results(self, results_df):
-        """結果をプロット"""
+        """Plot results"""
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
         
         metrics = ['mae', 'rmse', 'lpd']
@@ -292,15 +292,15 @@ class SimpleBayesianExperiment:
         return results_df
 
 def main():
-    """メイン実行関数"""
+    """Main execution function"""
     print("=== Simple Bayesian Prior Comparison ===")
     
     experiment = SimpleBayesianExperiment()
     
-    # モデル比較実行
+    # Execute model comparison
     results_df = experiment.compare_models([10, 20, 30])
     
-    # 結果を保存
+    # Save results
     if not results_df.empty:
         results_df.to_csv('simple_comparison_results.csv', index=False)
         print("\nResults saved to 'simple_comparison_results.csv'")

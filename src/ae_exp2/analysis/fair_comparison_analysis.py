@@ -1,13 +1,13 @@
 """
-公正な比較実験の結果分析スクリプト
+Fair comparison experiment results analysis script
 
-このスクリプトは、バイアスのない公正な比較実験の結果を詳細に分析し、
-統計的有意性を検証し、可視化を行います。
+This script performs detailed analysis of unbiased fair comparison experiment results,
+verifies statistical significance, and creates visualizations.
 
 Key Findings:
-- GPT-4 Blind が最も優秀な性能を示した (MAE: 0.437±0.083)
-- Meta-analytical approach が最も低い性能 (MAE: 0.514±0.096)
-- GPT-4 Disease-Informed は中間的性能 (MAE: 0.504±0.097)
+- GPT-4 Blind showed the best performance (MAE: 0.437±0.083)
+- Meta-analytical approach showed the lowest performance (MAE: 0.514±0.096)
+- GPT-4 Disease-Informed showed intermediate performance (MAE: 0.504±0.097)
 """
 
 import pandas as pd
@@ -19,11 +19,11 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
-# 日本語フォント設定
+# Font settings
 plt.rcParams['font.family'] = ['DejaVu Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Takao', 'IPAexGothic', 'IPAPGothic', 'VL PGothic', 'Noto Sans CJK JP']
 
 class FairComparisonAnalyzer:
-    """公正な比較実験の結果分析クラス"""
+    """Fair comparison experiment results analysis class"""
     
     def __init__(self, results_dir: str = "/Users/araishouta/AE_exp2/results/data"):
         self.results_dir = Path(results_dir)
@@ -32,7 +32,7 @@ class FairComparisonAnalyzer:
         self.progressive_results = None
         
     def load_latest_results(self):
-        """最新の実験結果を読み込み"""
+        """Load latest experiment results"""
         # CV summary results
         cv_summary_files = list(self.results_dir.glob("cv_5fold_summary_*.csv"))
         if cv_summary_files:
@@ -55,24 +55,24 @@ class FairComparisonAnalyzer:
             print(f"Loaded progressive: {latest_progressive.name}")
             
     def analyze_cv_results(self):
-        """5-fold CV結果の統計分析"""
+        """Statistical analysis of 5-fold CV results"""
         print("\n" + "="*60)
-        print("5-FOLD CROSS-VALIDATION 結果分析")
+        print("5-FOLD CROSS-VALIDATION RESULTS ANALYSIS")
         print("="*60)
         
         if self.cv_summary is None:
             print("CV summary data not available")
             return
             
-        # CV結果の表示
-        print("\nMAE (Mean Absolute Error) 結果:")
+        # Display CV results
+        print("\nMAE (Mean Absolute Error) Results:")
         print("-" * 40)
         mae_results = self.cv_summary[['mae']].copy()
         mae_results.columns = ['Mean', 'Std']
         mae_results['Mean'] = mae_results['Mean'].round(4)
         mae_results['Std'] = mae_results['Std'].round(4)
         
-        # ランキング
+        # Ranking
         mae_results = mae_results.sort_values('Mean')
         mae_results['Rank'] = range(1, len(mae_results) + 1)
         
@@ -80,16 +80,16 @@ class FairComparisonAnalyzer:
             status = "🥇 BEST" if i == 0 else "🥈 2nd" if i == 1 else "🥉 3rd"
             print(f"{row['Rank']}. {model}: {row['Mean']:.4f} ± {row['Std']:.4f} {status}")
         
-        # 統計的有意性検証（詳細CV結果が必要）
+        # Statistical Significance
         if self.cv_detailed is not None:
             self.statistical_significance_test()
             
     def statistical_significance_test(self):
-        """統計的有意性検証"""
-        print("\n統計的有意性検証:")
+        """Statistical significance testing"""
+        print("\nStatistical significance testing:")
         print("-" * 30)
         
-        # 各モデルのMAE値を抽出
+        # Extract MAE values for each model
         models = self.cv_detailed['model'].unique()
         mae_by_model = {}
         
@@ -97,7 +97,7 @@ class FairComparisonAnalyzer:
             model_data = self.cv_detailed[self.cv_detailed['model'] == model]
             mae_by_model[model] = model_data['mae'].values
             
-        # ペアワイズt検定
+        # Pairwise t-tests
         model_pairs = [
             ('GPT-4 Blind', 'Meta-analytical'),
             ('GPT-4 Blind', 'GPT-4 Disease-Informed'),
@@ -111,17 +111,17 @@ class FairComparisonAnalyzer:
                 print(f"{model1} vs {model2}: t={t_stat:.3f}, p={p_value:.4f} {significance}")
                 
     def analyze_progressive_results(self):
-        """プログレッシブサンプルサイズ分析"""
+        """Progressive sample size analysis"""
         print("\n" + "="*60)
-        print("PROGRESSIVE SAMPLE SIZE 分析")
+        print("PROGRESSIVE SAMPLE SIZE ANALYSIS")
         print("="*60)
         
         if self.progressive_results is None:
             print("Progressive results not available")
             return
             
-        # サンプルサイズごとの性能
-        print("\nサンプルサイズ別性能 (MAE):")
+        # Performance by sample size
+        print("\nPerformance by sample size (MAE):")
         print("-" * 40)
         
         for n_sites in sorted(self.progressive_results['n_sites'].unique()):
@@ -136,13 +136,13 @@ class FairComparisonAnalyzer:
                     print(f"  {model}: {mae:.4f}")
                     
     def create_comprehensive_visualization(self):
-        """包括的な可視化"""
-        print("\n可視化を作成中...")
+        """Create comprehensive visualization"""
+        print("\nCreating visualization...")
         
-        # フィギュアの設定
+        # Figure settings
         fig = plt.figure(figsize=(20, 16))
         
-        # 1. CV結果のボックスプロット
+        # 1. CV results box plot
         if self.cv_detailed is not None:
             ax1 = plt.subplot(2, 3, 1)
             sns.boxplot(data=self.cv_detailed, x='model', y='mae', ax=ax1)
@@ -151,14 +151,14 @@ class FairComparisonAnalyzer:
             ax1.set_ylabel('Mean Absolute Error', fontsize=12)
             ax1.tick_params(axis='x', rotation=45)
             
-            # 平均値を追加
+            # Add mean values
             for i, model in enumerate(self.cv_detailed['model'].unique()):
                 model_data = self.cv_detailed[self.cv_detailed['model'] == model]
                 mean_mae = model_data['mae'].mean()
                 ax1.text(i, mean_mae, f'{mean_mae:.3f}', ha='center', va='bottom', 
                         fontweight='bold', color='red')
         
-        # 2. CV結果のバープロット（エラーバー付き）
+        # 2. CV results bar plot (with error bars)
         if self.cv_summary is not None:
             ax2 = plt.subplot(2, 3, 2)
             models = self.cv_summary.index
@@ -171,13 +171,13 @@ class FairComparisonAnalyzer:
             ax2.set_ylabel('Mean Absolute Error', fontsize=12)
             ax2.tick_params(axis='x', rotation=45)
             
-            # 値をバーの上に表示
+            # Display values on top of bars
             for bar, mean, std in zip(bars, means, stds):
                 height = bar.get_height()
                 ax2.text(bar.get_x() + bar.get_width()/2., height + std + 0.01,
                         f'{mean:.3f}±{std:.3f}', ha='center', va='bottom', fontweight='bold')
         
-        # 3. プログレッシブサンプルサイズ結果
+        # 3. Progressive sample size results
         if self.progressive_results is not None:
             ax3 = plt.subplot(2, 3, 3)
             
@@ -192,11 +192,11 @@ class FairComparisonAnalyzer:
             ax3.legend()
             ax3.grid(True, alpha=0.3)
         
-        # 4. モデル性能改善度分析
+        # 4. Model performance improvement analysis
         if self.progressive_results is not None:
             ax4 = plt.subplot(2, 3, 4)
             
-            # 最小サンプルサイズでの性能を基準とする相対改善度
+            # Relative improvement based on minimum sample size performance
             baseline_n_sites = self.progressive_results['n_sites'].min()
             
             for model in ['GPT-4 Blind', 'GPT-4 Disease-Informed', 'Meta-analytical']:
@@ -214,7 +214,7 @@ class FairComparisonAnalyzer:
             ax4.grid(True, alpha=0.3)
             ax4.axhline(y=0, color='black', linestyle='--', alpha=0.5)
         
-        # 5. 統計的有意性ヒートマップ
+        # 5. Statistical Significance
         if self.cv_detailed is not None:
             ax5 = plt.subplot(2, 3, 5)
             
@@ -268,33 +268,33 @@ class FairComparisonAnalyzer:
         
         plt.tight_layout()
         
-        # 保存
+        # Save
         output_path = self.results_dir.parent / "figures" / "fair_comparison_comprehensive_analysis.png"
         output_path.parent.mkdir(exist_ok=True)
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        print(f"保存完了: {output_path}")
+        print(f"Save completed: {output_path}")
         
         plt.show()
         
     def generate_statistical_report(self):
-        """統計レポートの生成"""
+        """Generate statistical report"""
         print("\n" + "="*60)
-        print("統計的結論とレポート")
+        print("STATISTICAL CONCLUSIONS AND REPORT")
         print("="*60)
         
         report = f"""
 BAYESIAN PRIOR DISTRIBUTION COMPARISON - FAIR ANALYSIS REPORT
 =============================================================
-実験日時: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
+Experiment Date: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-【実験概要】
-バイアスのない公正な比較を実現するため、以下の重要な修正を実施：
-1. 全モデルで同一の random seed (42) を使用
-2. 全モデルで同一のデータサブセット (selected_sites) を使用
-3. GPT-4プロンプトから magic numbers を完全除去
-4. 5-fold stratified cross-validation による統計的妥当性確保
+【EXPERIMENT OVERVIEW】
+To achieve unbiased fair comparison, the following critical modifications were implemented:
+1. Used identical random seed (42) for all models
+2. Used identical data subsets (selected_sites) for all models
+3. Completely removed magic numbers from GPT-4 prompts
+4. Ensured statistical validity through 5-fold stratified cross-validation
 
-【主要発見】
+【KEY FINDINGS】
 """
         
         if self.cv_summary is not None:
@@ -303,55 +303,55 @@ BAYESIAN PRIOR DISTRIBUTION COMPARISON - FAIR ANALYSIS REPORT
             mae_results = mae_results.sort_values('Mean')
             
             report += f"""
-5-FOLD CROSS-VALIDATION 結果 (MAE):
+5-FOLD CROSS-VALIDATION RESULTS (MAE):
 1. GPT-4 Blind:            {mae_results.iloc[0]['Mean']:.4f} ± {mae_results.iloc[0]['Std']:.4f} 🥇
 2. GPT-4 Disease-Informed: {mae_results.iloc[1]['Mean']:.4f} ± {mae_results.iloc[1]['Std']:.4f} 🥈  
 3. Meta-analytical:        {mae_results.iloc[2]['Mean']:.4f} ± {mae_results.iloc[2]['Std']:.4f} 🥉
 
-【統計的重要性】
-- GPT-4 Blind が統計的に最も優秀な性能を示した
-- 疾患情報の追加は性能向上に寄与しなかった
-- 従来のメタ分析的アプローチは最も低い性能
+【STATISTICAL SIGNIFICANCE】
+- GPT-4 Blind showed statistically superior performance
+- Addition of disease information did not contribute to performance improvement
+- Traditional meta-analytical approach showed lowest performance
 """
         
         report += f"""
-【批判的発見】
-これまでの実験結果は、異なるデータサンプリングによる人工的な効果であり、
-真の prior distribution の効果ではなかった。公正な比較により：
+【CRITICAL DISCOVERY】
+Previous experimental results were artifacts of different data sampling,
+not true prior distribution effects. Fair comparison revealed:
 
-1. GPT-4 Blind priors が実際に最も優秀
-2. 疾患特異的情報は performance improvement に寄与しない
-3. LLMベースの prior が従来手法を上回る可能性
+1. GPT-4 Blind priors are actually the most superior
+2. Disease-specific information does not contribute to performance improvement
+3. LLM-based priors may outperform traditional methods
 
-【研究的意義】
-1. 実験設計の重要性の再確認
-2. LLM-based priors の有効性の科学的証明
-3. 情報量と性能の関係性への新たな洞察
+【RESEARCH SIGNIFICANCE】
+1. Reconfirmation of the importance of experimental design
+2. Scientific proof of effectiveness of LLM-based priors
+3. New insights into the relationship between information content and performance
 
-【推奨事項】
-1. 今後の比較実験では identical data subsets を必須とする
-2. LLM prompts からの magic numbers 除去を標準化
-3. K-fold cross-validation による統計的妥当性確保
+【RECOMMENDATIONS】
+1. Make identical data subsets mandatory in future comparison experiments
+2. Standardize removal of magic numbers from LLM prompts
+3. Ensure statistical validity through K-fold cross-validation
 
-【結論】
-公正な実験設計により、GPT-4 Blind priors が Bayesian modeling において
-従来のメタ分析的アプローチを上回ることが統計的に示された。
+【CONCLUSION】
+Through fair experimental design, it was statistically demonstrated that GPT-4 Blind priors
+outperform traditional meta-analytical approaches in Bayesian modeling.
 """
         
         print(report)
         
-        # レポートをファイルに保存
+        # Save report to file
         report_path = self.results_dir.parent / "reports" / f"fair_comparison_statistical_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.txt"
         report_path.parent.mkdir(exist_ok=True)
         
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report)
         
-        print(f"\nレポート保存完了: {report_path}")
+        print(f"\nReport save completed: {report_path}")
         
     def run_complete_analysis(self):
-        """完全な分析の実行"""
-        print("公正な比較実験の包括的分析を開始...")
+        """Execute complete analysis"""
+        print("Starting comprehensive analysis of fair comparison experiment...")
         
         self.load_latest_results()
         self.analyze_cv_results()
@@ -360,7 +360,7 @@ BAYESIAN PRIOR DISTRIBUTION COMPARISON - FAIR ANALYSIS REPORT
         self.generate_statistical_report()
         
         print("\n" + "="*60)
-        print("分析完了！")
+        print("ANALYSIS COMPLETED!")
         print("="*60)
 
 

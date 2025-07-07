@@ -1,7 +1,7 @@
 """
-実験モジュール
+Experiments Module
 
-ベイズ事前分布比較実験の実装を含みます。
+Contains implementations of Bayesian prior distribution comparison experiments.
 """
 
 from .main import ImprovedBayesianExperiment

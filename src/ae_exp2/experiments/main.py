@@ -1,5 +1,5 @@
 """
-改良版実験: マジックナンバー排除とベースライン比較分析
+Improved Experiment: Magic Number Elimination and Baseline Comparison Analysis
 """
 
 import os
@@ -18,57 +18,57 @@ from scipy.interpolate import interp1d
 import warnings
 warnings.filterwarnings('ignore')
 
-# 設定ファイルの読み込み
+# Load configuration file
 from ..config.experiment_config import *
 
 load_dotenv()
 
 class ImprovedBayesianExperiment:
-    """改良版ベイズ実験クラス - マジックナンバー排除とベースライン比較"""
+    """Improved Bayesian Experiment Class - Magic Number Elimination and Baseline Comparison"""
     
     def __init__(self, data_path='data.csv'):
-        """初期化"""
+        """Initialize"""
         self.data = pd.read_csv(data_path)
         self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.gpt_priors = None
         self.process_data()
         
-        print(f"結果保存先: {RESULTS_DIR}")
+        print(f"Results save location: {RESULTS_DIR}")
         
     def process_data(self):
-        """IPD（Individual Patient Data）の前処理 - Barmaz & Ménard準拠"""
-        # 患者レベルデータをそのまま保持（これがIPD）
+        """IPD (Individual Patient Data) preprocessing - Compliant with Barmaz & Ménard"""
+        # Preserve patient-level data as is (this is IPD)
         self.patient_data = self.data.copy()
         
-        # データ検証
-        print(f"IPD統計:")
-        print(f"総患者記録数: {len(self.patient_data)}")
-        print(f"ユニーク患者数: {self.patient_data['patnum'].nunique()}")
-        print(f"ユニーク施設数: {self.patient_data['site_number'].nunique()}")
-        print(f"患者レベルAE分布:")
+        # Data validation
+        print(f"IPD Statistics:")
+        print(f"Total patient records: {len(self.patient_data)}")
+        print(f"Unique patients: {self.patient_data['patnum'].nunique()}")
+        print(f"Unique sites: {self.patient_data['site_number'].nunique()}")
+        print(f"Patient-level AE distribution:")
         print(self.patient_data['ae_count_cumulative'].describe())
         
-        # 施設レベル要約（参考用のみ）
+        # Site-level summary (for reference only)
         self.site_summary = self.data.groupby('site_number').agg({
             'patnum': 'nunique',
             'ae_count_cumulative': ['sum', 'mean', 'count']
         }).round(4)
         
-        print(f"\n施設レベル要約（参考）:")
-        print(f"施設あたり平均患者数: {self.site_summary[('patnum', 'nunique')].mean():.1f}")
-        print(f"患者あたり平均AE数: {self.patient_data['ae_count_cumulative'].mean():.3f}")
+        print(f"\nSite-level summary (for reference):")
+        print(f"Average patients per site: {self.site_summary[('patnum', 'nunique')].mean():.1f}")
+        print(f"Average AE count per patient: {self.patient_data['ae_count_cumulative'].mean():.3f}")
     
     def create_stratified_cv_folds(self, n_folds=5):
-        """層別交差検証のフォールドを作成（Hastie et al. 2009準拠）"""
+        """Create stratified cross-validation folds (Hastie et al. 2009 compliant)"""
         print(f"\n=== {n_folds}-Fold Stratified Cross-Validation Setup ===")
         
-        # 施設レベルでの層別化
+        # Site-level stratification
         sites = self.patient_data['site_number'].unique()
         
-        # 施設あたりの患者数で層別化（小・中・大施設）
+        # Stratification by patients per site (small, medium, large sites)
         site_patient_counts = self.patient_data.groupby('site_number').size()
         
-        # 3つの層に分割（Efron & Tibshirani 1993）
+        # Divide into 3 strata (Efron & Tibshirani 1993)
         site_terciles = np.percentile(site_patient_counts, [33.33, 66.67])
         
         small_sites = site_patient_counts[site_patient_counts <= site_terciles[0]].index
@@ -78,18 +78,18 @@ class ImprovedBayesianExperiment:
         ].index
         large_sites = site_patient_counts[site_patient_counts > site_terciles[1]].index
         
-        print(f"小規模施設: {len(small_sites)}施設")
-        print(f"中規模施設: {len(medium_sites)}施設") 
-        print(f"大規模施設: {len(large_sites)}施設")
+        print(f"Small sites: {len(small_sites)} sites")
+        print(f"Medium sites: {len(medium_sites)} sites") 
+        print(f"Large sites: {len(large_sites)} sites")
         
-        # 各層から均等にサンプリング
+        # Sample equally from each stratum
         folds = []
         np.random.seed(EXPERIMENT_CONFIG["random_seed"])
         
         for fold in range(n_folds):
             fold_sites = []
             
-            # 各層から均等に選択
+            # Select equally from each stratum
             for sites_in_stratum in [small_sites, medium_sites, large_sites]:
                 if len(sites_in_stratum) > 0:
                     n_per_fold = max(1, len(sites_in_stratum) // n_folds)
@@ -105,8 +105,8 @@ class ImprovedBayesianExperiment:
         return folds
     
     def get_gpt4_prior_completely_blind(self):
-        """GPT-4から完全にブラインドで事前分布を取得（データ情報なし）"""
-        print("\n=== GPT-4への完全ブラインド問い合わせ ===")
+        """Obtain prior distributions from GPT-4 completely blind (no data information)"""
+        print("\n=== Completely Blind Inquiry to GPT-4 ===")
         
         prompt = """
         You are a biostatistics expert specializing in clinical trials and Bayesian analysis.
@@ -146,7 +146,7 @@ class ImprovedBayesianExperiment:
         
         for attempt in range(GPT4_CONFIG["max_retries"]):
             try:
-                print(f"GPT-4問い合わせ試行 {attempt + 1}/{GPT4_CONFIG['max_retries']}")
+                print(f"GPT-4 inquiry attempt {attempt + 1}/{GPT4_CONFIG['max_retries']}")
                 
                 response = self.client.chat.completions.create(
                     model=GPT4_CONFIG["model"],
@@ -159,10 +159,10 @@ class ImprovedBayesianExperiment:
                 )
                 
                 response_text = response.choices[0].message.content
-                print("GPT-4完全ブラインド回答:")
+                print("GPT-4 completely blind response:")
                 print(response_text)
                 
-                # JSONレスポンスを抽出
+                # Extract JSON response
                 if '```json' in response_text:
                     json_start = response_text.find('```json') + 7
                     json_end = response_text.find('```', json_start)
@@ -172,19 +172,19 @@ class ImprovedBayesianExperiment:
                     json_end = response_text.rfind('}') + 1
                     json_text = response_text[json_start:json_end]
                 else:
-                    raise ValueError("JSONが見つかりません")
+                    raise ValueError("JSON not found")
                 
                 gpt_priors = json.loads(json_text)
                 
-                # パラメータの妥当性チェック
+                # Parameter validity check
                 alpha_params = gpt_priors['alpha_prior']['parameters']
                 beta_params = gpt_priors['beta_prior']['parameters']
                 
                 if (not isinstance(alpha_params[0], (int, float)) or 
                     not isinstance(beta_params[0], (int, float))):
-                    raise ValueError("パラメータが数値ではありません")
+                    raise ValueError("Parameters are not numeric")
                 
-                # 回答を保存
+                # Save response
                 with open(DATA_DIR / "gpt4_blind_response.json", 'w', encoding='utf-8') as f:
                     json.dump({
                         "prompt": prompt,
@@ -196,16 +196,16 @@ class ImprovedBayesianExperiment:
                 return gpt_priors
                 
             except Exception as e:
-                print(f"GPT-4問い合わせエラー (試行 {attempt + 1}): {e}")
+                print(f"GPT-4 inquiry error (attempt {attempt + 1}): {e}")
                 if attempt == GPT4_CONFIG["max_retries"] - 1:
-                    print("GPT-4が利用できません。完全非情報的事前分布を使用します。")
+                    print("GPT-4 unavailable. Using completely non-informative priors.")
                     return MODEL_CONFIG["gpt4_fallback"]
         
         return MODEL_CONFIG["gpt4_fallback"]
     
     def get_gpt4_prior_with_disease_info(self):
-        """GPT-4から疾患情報付きで事前分布を取得"""
-        print("\n=== GPT-4への疾患情報付き問い合わせ ===")
+        """Obtain prior distributions from GPT-4 with disease information"""
+        print("\n=== Disease Information Inquiry to GPT-4 ===")
         
         prompt = """
         You are a biostatistics expert specializing in clinical trials and Bayesian analysis.
@@ -254,7 +254,7 @@ class ImprovedBayesianExperiment:
         
         for attempt in range(GPT4_CONFIG["max_retries"]):
             try:
-                print(f"GPT-4問い合わせ試行 {attempt + 1}/{GPT4_CONFIG['max_retries']}")
+                print(f"GPT-4 inquiry attempt {attempt + 1}/{GPT4_CONFIG['max_retries']}")
                 
                 response = self.client.chat.completions.create(
                     model=GPT4_CONFIG["model"],
@@ -267,10 +267,10 @@ class ImprovedBayesianExperiment:
                 )
                 
                 response_text = response.choices[0].message.content
-                print("GPT-4疾患情報付き回答:")
+                print("GPT-4 disease-informed response:")
                 print(response_text)
                 
-                # JSONレスポンスを抽出
+                # Extract JSON response
                 if '```json' in response_text:
                     json_start = response_text.find('```json') + 7
                     json_end = response_text.find('```', json_start)
@@ -280,11 +280,11 @@ class ImprovedBayesianExperiment:
                     json_end = response_text.rfind('}') + 1
                     json_text = response_text[json_start:json_end]
                 else:
-                    raise ValueError("JSONが見つかりません")
+                    raise ValueError("JSON not found")
                 
                 gpt_priors = json.loads(json_text)
                 
-                # 回答を保存
+                # Save response
                 with open(DATA_DIR / "gpt4_disease_response.json", 'w', encoding='utf-8') as f:
                     json.dump({
                         "prompt": prompt,
@@ -296,62 +296,62 @@ class ImprovedBayesianExperiment:
                 return gpt_priors
                 
             except Exception as e:
-                print(f"GPT-4問い合わせエラー (試行 {attempt + 1}): {e}")
+                print(f"GPT-4 inquiry error (attempt {attempt + 1}): {e}")
                 if attempt == GPT4_CONFIG["max_retries"] - 1:
-                    print("GPT-4が利用できません。完全非情報的事前分布を使用します。")
+                    print("GPT-4 unavailable. Using completely non-informative prior distribution.")
                     return MODEL_CONFIG["gpt4_fallback"]
         
         return MODEL_CONFIG["gpt4_fallback"]
 
     def run_model_meta_analytical(self, selected_sites=None, n_sites=20):
-        """モデルA: Meta-analytical prior (Barmaz & Ménard 2021) - IPD版"""
+        """Model A: Meta-analytical prior (Barmaz & Ménard 2021) - IPD version"""
         print(f"\n=== Meta-analytical Prior IPD Model (n_sites={n_sites}) ===")
         
-        # 施設選択（外部指定または固定シード使用）
+        # Site selection (External specification or fixed seed usage)
         if selected_sites is None:
             available_sites = self.patient_data['site_number'].unique()
-            np.random.seed(EXPERIMENT_CONFIG["random_seed"])  # 全モデルで同じシード
+            np.random.seed(EXPERIMENT_CONFIG["random_seed"])  # Same seed for all models
             selected_sites = np.random.choice(
                 available_sites, 
                 size=min(n_sites, len(available_sites)), 
                 replace=False
             )
         
-        # 選択された施設の患者データを取得
+        # Obtain patient data from selected sites
         sample_data = self.patient_data[
             self.patient_data['site_number'].isin(selected_sites)
         ].copy()
         
-        # IPDモデル用データ準備
+        # IPD model data preparation
         sites = sample_data['site_number'].values
-        observed_ae = sample_data['ae_count_cumulative'].values  # 各患者のAE数
+        observed_ae = sample_data['ae_count_cumulative'].values  # AE count for each patient
         unique_sites, sites_idx = np.unique(sites, return_inverse=True)
         n_sites = len(unique_sites)
         
-        print(f"選択された施設数: {n_sites}")
-        print(f"患者数: {len(sample_data)}")
-        print(f"AE範囲: {observed_ae.min()} - {observed_ae.max()}")
+        print(f"Number of selected sites: {n_sites}")
+        print(f"Number of patients: {len(sample_data)}")
+        print(f"AE range: {observed_ae.min()} - {observed_ae.max()}")
         
         with pm.Model() as model_meta:
-            # Barmaz & Ménard (2021) 事前分布 - IPD用
+            # Barmaz & Ménard (2021) prior distribution - for IPD
             config = MODEL_CONFIG["meta_analytical"]
             alpha_study = pm.Exponential('alpha_study', 
                                        lam=config["alpha_prior"]["parameters"][0])
             beta_study = pm.Exponential('beta_study', 
                                       lam=config["beta_prior"]["parameters"][0])
             
-            # 各施設の患者レベルAE率 (Gamma分布)
+            # Patient-level AE rates for each site (Gamma distribution)
             lambda_sites = pm.Gamma('lambda_sites', 
                                   alpha=alpha_study, 
                                   beta=beta_study, 
                                   shape=n_sites)
             
-            # IPD尤度: 各患者のAE数 ~ Poisson(その患者の施設のAE率)
+            # IPD likelihood: AE count for each patient ~ Poisson(AE rate of the patient's site)
             ae_counts = pm.Poisson('ae_counts', 
-                                 mu=lambda_sites[sites_idx],  # 患者が所属する施設のAE率
+                                 mu=lambda_sites[sites_idx],  # AE rate of the facility where the patient belongs
                                  observed=observed_ae)
             
-            # サンプリング
+            # Sampling
             trace_meta = pm.sample(
                 EXPERIMENT_CONFIG["mcmc_samples"], 
                 tune=EXPERIMENT_CONFIG["mcmc_tune"], 
@@ -363,39 +363,39 @@ class ImprovedBayesianExperiment:
         return model_meta, trace_meta, sample_data
     
     def run_model_gpt4(self, selected_sites=None, n_sites=20):
-        """モデルB: GPT-4完全ブラインド事前分布 - IPD版"""
+        """Model B: GPT-4 completely blind prior distribution - IPD version"""
         print(f"\n=== GPT-4 Blind Prior IPD Model (n_sites={n_sites}) ===")
         
         if self.gpt_priors is None:
             self.gpt_priors = self.get_gpt4_prior_completely_blind()
         
-        # 施設選択（外部指定または固定シード使用）
+        # Site selection (External specification or fixed seed usage)
         if selected_sites is None:
             available_sites = self.patient_data['site_number'].unique()
-            np.random.seed(EXPERIMENT_CONFIG["random_seed"])  # 全モデルで同じシード
+            np.random.seed(EXPERIMENT_CONFIG["random_seed"])  # Same seed for all models
             selected_sites = np.random.choice(
                 available_sites, 
                 size=min(n_sites, len(available_sites)), 
                 replace=False
             )
         
-        # 選択された施設の患者データを取得
+        # Obtain patient data from selected sites
         sample_data = self.patient_data[
             self.patient_data['site_number'].isin(selected_sites)
         ].copy()
         
-        # IPDモデル用データ準備
+        # Data preparation for IPD model
         sites = sample_data['site_number'].values
         observed_ae = sample_data['ae_count_cumulative'].values
         unique_sites, sites_idx = np.unique(sites, return_inverse=True)
         n_sites = len(unique_sites)
         
         with pm.Model() as model_gpt:
-            # GPT-4完全ブラインド推奨事前分布
+            # GPT-4 completely blind recommended prior distribution
             alpha_prior = self.gpt_priors['alpha_prior']
             beta_prior = self.gpt_priors['beta_prior']
             
-            print(f"GPT-4推奨事前分布: α ~ {alpha_prior['distribution'].title()}{tuple(alpha_prior['parameters'])}, β ~ {beta_prior['distribution'].title()}{tuple(beta_prior['parameters'])}")
+            print(f"GPT-4 recommended prior distribution: α ~ {alpha_prior['distribution'].title()}{tuple(alpha_prior['parameters'])}, β ~ {beta_prior['distribution'].title()}{tuple(beta_prior['parameters'])}")
             
             if alpha_prior['distribution'] == 'exponential':
                 alpha_study = pm.Exponential('alpha_study', lam=alpha_prior['parameters'][0])
@@ -411,18 +411,18 @@ class ImprovedBayesianExperiment:
                                     alpha=beta_prior['parameters'][0],
                                     beta=beta_prior['parameters'][1])
             
-            # 各施設の患者レベルAE率
+            # Patient-level AE rates for each site
             lambda_sites = pm.Gamma('lambda_sites',
                                   alpha=alpha_study,
                                   beta=beta_study,
                                   shape=n_sites)
             
-            # IPD尤度
+            # IPD likelihood
             ae_counts = pm.Poisson('ae_counts',
                                  mu=lambda_sites[sites_idx],
                                  observed=observed_ae)
             
-            # サンプリング
+            # Sampling
             trace_gpt = pm.sample(
                 EXPERIMENT_CONFIG["mcmc_samples"], 
                 tune=EXPERIMENT_CONFIG["mcmc_tune"], 
@@ -434,39 +434,39 @@ class ImprovedBayesianExperiment:
         return model_gpt, trace_gpt, sample_data
     
     def run_model_gpt4_disease(self, selected_sites=None, n_sites=20):
-        """モデルC: GPT-4疾患情報付き事前分布 - IPD版"""
+        """Model C: GPT-4 disease-informed prior distribution - IPD version"""
         print(f"\n=== GPT-4 Disease-Informed Prior IPD Model (n_sites={n_sites}) ===")
         
         if not hasattr(self, 'gpt_disease_priors') or self.gpt_disease_priors is None:
             self.gpt_disease_priors = self.get_gpt4_prior_with_disease_info()
         
-        # 施設選択（外部指定または固定シード使用）
+        # Site selection (External specification or fixed seed usage)
         if selected_sites is None:
             available_sites = self.patient_data['site_number'].unique()
-            np.random.seed(EXPERIMENT_CONFIG["random_seed"])  # 全モデルで同じシード
+            np.random.seed(EXPERIMENT_CONFIG["random_seed"])  # Same seed for all models
             selected_sites = np.random.choice(
                 available_sites, 
                 size=min(n_sites, len(available_sites)), 
                 replace=False
             )
         
-        # 選択された施設の患者データを取得
+        # Obtain patient data from selected sites
         sample_data = self.patient_data[
             self.patient_data['site_number'].isin(selected_sites)
         ].copy()
         
-        # IPDモデル用データ準備
+        # Data preparation for IPD model
         sites = sample_data['site_number'].values
         observed_ae = sample_data['ae_count_cumulative'].values
         unique_sites, sites_idx = np.unique(sites, return_inverse=True)
         n_sites = len(unique_sites)
         
         with pm.Model() as model_gpt_disease:
-            # GPT-4疾患情報付き推奨事前分布
+            # GPT-4 disease-informed recommended prior distribution
             alpha_prior = self.gpt_disease_priors['alpha_prior']
             beta_prior = self.gpt_disease_priors['beta_prior']
             
-            print(f"GPT-4疾患情報付き推奨事前分布: α ~ {alpha_prior['distribution'].title()}{tuple(alpha_prior['parameters'])}, β ~ {beta_prior['distribution'].title()}{tuple(beta_prior['parameters'])}")
+            print(f"GPT-4 disease-informed recommended prior distribution: α ~ {alpha_prior['distribution'].title()}{tuple(alpha_prior['parameters'])}, β ~ {beta_prior['distribution'].title()}{tuple(beta_prior['parameters'])}")
             
             if alpha_prior['distribution'] == 'exponential':
                 alpha_study = pm.Exponential('alpha_study', lam=alpha_prior['parameters'][0])
@@ -482,18 +482,18 @@ class ImprovedBayesianExperiment:
                                     alpha=beta_prior['parameters'][0],
                                     beta=beta_prior['parameters'][1])
             
-            # 各施設の患者レベルAE率
+            # Patient-level AE rates for each site
             lambda_sites = pm.Gamma('lambda_sites',
                                   alpha=alpha_study,
                                   beta=beta_study,
                                   shape=n_sites)
             
-            # IPD尤度
+            # IPD likelihood
             ae_counts = pm.Poisson('ae_counts',
                                  mu=lambda_sites[sites_idx],
                                  observed=observed_ae)
             
-            # サンプリング
+            # Sampling
             trace_gpt_disease = pm.sample(
                 EXPERIMENT_CONFIG["mcmc_samples"], 
                 tune=EXPERIMENT_CONFIG["mcmc_tune"], 
@@ -505,16 +505,16 @@ class ImprovedBayesianExperiment:
         return model_gpt_disease, trace_gpt_disease, sample_data
     
     def calculate_predictive_performance(self, trace, sample_data):
-        """IPD用予測性能の計算"""
-        # 施設レベルの実際のAE率を計算
+        """Calculation of predictive performance for IPD"""
+        # Calculate actual AE rates at site level
         site_true_rates = sample_data.groupby('site_number')['ae_count_cumulative'].mean()
         
-        # 事後予測分布から予測値を取得
+        # Obtain predicted values from posterior predictive distribution
         posterior_lambda = trace.posterior['lambda_sites'].values
         # shape: (chains, draws, sites)
         predicted_rates = posterior_lambda.mean(axis=(0, 1))
         
-        # サイト順序を合わせる
+        # Align site order
         unique_sites = np.sort(sample_data['site_number'].unique())
         true_rates = [site_true_rates[site] for site in unique_sites]
         
@@ -524,16 +524,16 @@ class ImprovedBayesianExperiment:
         # RMSE  
         rmse = np.sqrt(np.mean((predicted_rates - true_rates) ** 2))
         
-        # Log Predictive Density (IPD用)
-        # 患者レベルでの対数予測密度を計算
+        # Log Predictive Density (for IPD)
+        # Calculate log predictive density at patient level
         sites = sample_data['site_number'].values
         observed_ae = sample_data['ae_count_cumulative'].values
         unique_sites_array, sites_idx = np.unique(sites, return_inverse=True)
         
-        # 各患者の予測AE率
+        # Predicted AE rate for each patient
         patient_predicted_rates = predicted_rates[sites_idx]
         
-        # Poissonの対数確率密度
+        # Poisson log probability density
         from scipy.stats import poisson
         log_pred_densities = []
         for i, (obs, pred_rate) in enumerate(zip(observed_ae, patient_predicted_rates)):
@@ -553,16 +553,16 @@ class ImprovedBayesianExperiment:
         }
     
     def run_baseline_comparison_experiment(self):
-        """ベースライン比較実験 - IPD版"""
+        """Baseline comparison experiment - IPD version"""
         print("\n" + "="*60)
-        print("IPDベースライン比較実験開始")
+        print("IPD Baseline comparison experiment started")
         print("="*60)
         
         results = []
         sample_sizes = EXPERIMENT_CONFIG["sample_sizes"]
         
         for sample_size in sample_sizes:
-            print(f"\n--- サイト数 {sample_size} ---")
+            print(f"\n--- Number of sites {sample_size} ---")
             
             # Meta-analytical model
             _, trace_meta, sample_data = self.run_model_meta_analytical(sample_size)
@@ -590,7 +590,7 @@ class ImprovedBayesianExperiment:
                 'lpd': perf_gpt['lpd']
             })
             
-            print(f"患者数: {perf_meta['n_patients']}")
+            print(f"Number of patients: {perf_meta['n_patients']}")
             print(f"Meta-analytical - MAE: {perf_meta['mae']:.4f}, RMSE: {perf_meta['rmse']:.4f}, LPD: {perf_meta['lpd']:.4f}")
             print(f"GPT-4 Blind     - MAE: {perf_gpt['mae']:.4f}, RMSE: {perf_gpt['rmse']:.4f}, LPD: {perf_gpt['lpd']:.4f}")
         
@@ -600,32 +600,32 @@ class ImprovedBayesianExperiment:
         return results_df
     
     def analyze_sample_size_reduction(self, results_df):
-        """IPDベースでの必要サンプルサイズ削減効果を分析"""
-        print("\n=== IPDサンプルサイズ削減効果分析 ===")
+        """Analyze required sample size reduction effect based on IPD"""
+        print("\n=== IPD sample size reduction effect analysis ===")
         
-        # Meta-analyticalとGPT-4のデータを分離
+        # Separate meta-analytical and GPT-4 data
         meta_data = results_df[results_df['model'] == 'Meta-analytical'].copy()
         gpt_data = results_df[results_df['model'] == 'GPT-4 Blind'].copy()
         
         reduction_analysis = []
         
         for metric in ['mae', 'rmse']:
-            print(f"\n--- {metric.upper()}による分析 ---")
+            print(f"\n--- Analysis by {metric.upper()} ---")
             
-            # 補間関数を作成（サイト数ベース）
+            # Create interpolation function (based on number of sites)
             meta_interp = interp1d(meta_data[metric], meta_data['n_sites'], 
                                  kind='linear', fill_value='extrapolate')
             gpt_interp = interp1d(gpt_data[metric], gpt_data['n_sites'], 
                                 kind='linear', fill_value='extrapolate')
             
-            # 各ベースライン性能レベルでの必要サイト数を比較
+            # Compare required number of sites at each baseline performance level
             for baseline_performance in EVALUATION_CONFIG["baseline_performance_levels"]:
                 try:
-                    # その性能を達成するのに必要なサイト数
+                    # Number of sites required to achieve that performance
                     meta_required_n = float(meta_interp(baseline_performance))
                     gpt_required_n = float(gpt_interp(baseline_performance))
                     
-                    # サイト数削減効果
+                    # Site reduction effect
                     if meta_required_n > 0:
                         reduction_pct = (meta_required_n - gpt_required_n) / meta_required_n * 100
                         reduction_abs = meta_required_n - gpt_required_n
@@ -639,13 +639,13 @@ class ImprovedBayesianExperiment:
                             'reduction_percentage': reduction_pct
                         })
                         
-                        print(f"  {metric.upper()}={baseline_performance:.2f}の性能達成に必要なサイト数:")
+                        print(f"  Number of sites required to achieve {metric.upper()}={baseline_performance:.2f} performance:")
                         print(f"    Meta-analytical: {meta_required_n:.1f}")
                         print(f"    GPT-4 Blind:     {gpt_required_n:.1f}")
-                        print(f"    削減効果:        {reduction_abs:.1f} ({reduction_pct:+.1f}%)")
+                        print(f"    Reduction effect:        {reduction_abs:.1f} ({reduction_pct:+.1f}%)")
                         
                 except Exception as e:
-                    print(f"  {metric.upper()}={baseline_performance:.2f}: 計算できません ({e})")
+                    print(f"  {metric.upper()}={baseline_performance:.2f}: Cannot calculate ({e})")
         
         reduction_df = pd.DataFrame(reduction_analysis)
         reduction_df.to_csv(DATA_DIR / 'ipd_sample_size_reduction_analysis.csv', index=False)
@@ -653,21 +653,21 @@ class ImprovedBayesianExperiment:
         return reduction_df
 
     def run_cv_experiment(self, n_folds=5):
-        """K-fold Cross-Validation実験 (Hastie et al. 2009準拠)"""
+        """K-fold Cross-Validation experiment (Hastie et al. 2009 compliant)"""
         print("\n" + "="*60)
-        print(f"{n_folds}-Fold Cross-Validation 実験開始")
+        print(f"{n_folds}-Fold Cross-Validation experiment started")
         print("="*60)
         
-        # 層別交差検証のフォールドを作成
+        # Create stratified cross-validation folds
         cv_folds = self.create_stratified_cv_folds(n_folds)
         
         results = []
         
         for fold_idx, fold_sites in enumerate(cv_folds):
             print(f"\n--- Fold {fold_idx + 1}/{n_folds} ---")
-            print(f"使用施設数: {len(fold_sites)}")
+            print(f"Number of sites used: {len(fold_sites)}")
             
-            # 全モデルで同じデータサブセットを使用
+            # Use same data subset for all models
             
             # Meta-analytical model
             _, trace_meta, sample_data = self.run_model_meta_analytical(
@@ -686,7 +686,7 @@ class ImprovedBayesianExperiment:
                 'lpd': perf_meta['lpd']
             })
             
-            # GPT-4 Blind model (同じデータサブセット)
+            # GPT-4 Blind model (same data subset)
             _, trace_gpt_blind, _ = self.run_model_gpt4(
                 selected_sites=fold_sites,
                 n_sites=len(fold_sites)
@@ -703,7 +703,7 @@ class ImprovedBayesianExperiment:
                 'lpd': perf_gpt_blind['lpd']
             })
             
-            # GPT-4 Disease-Informed model (同じデータサブセット)
+            # GPT-4 Disease-Informed model (same data subset)
             _, trace_gpt_disease, _ = self.run_model_gpt4_disease(
                 selected_sites=fold_sites,
                 n_sites=len(fold_sites)
@@ -720,24 +720,24 @@ class ImprovedBayesianExperiment:
                 'lpd': perf_gpt_disease['lpd']
             })
             
-            print(f"患者数: {perf_meta['n_patients']}")
+            print(f"Number of patients: {perf_meta['n_patients']}")
             print(f"Meta-analytical      - MAE: {perf_meta['mae']:.4f}, RMSE: {perf_meta['rmse']:.4f}, LPD: {perf_meta['lpd']:.4f}")
             print(f"GPT-4 Blind          - MAE: {perf_gpt_blind['mae']:.4f}, RMSE: {perf_gpt_blind['rmse']:.4f}, LPD: {perf_gpt_blind['lpd']:.4f}")
             print(f"GPT-4 Disease-Informed - MAE: {perf_gpt_disease['mae']:.4f}, RMSE: {perf_gpt_disease['rmse']:.4f}, LPD: {perf_gpt_disease['lpd']:.4f}")
         
         results_df = pd.DataFrame(results)
         
-        # Cross-validation統計の計算
+        # Calculate cross-validation statistics
         cv_summary = results_df.groupby('model').agg({
             'mae': ['mean', 'std'],
             'rmse': ['mean', 'std'],
             'lpd': ['mean', 'std']
         }).round(4)
         
-        print(f"\n=== {n_folds}-Fold CV 結果要約 ===")
+        print(f"\n=== {n_folds}-Fold CV result summary ===")
         print(cv_summary)
         
-        # 結果保存
+        # Save results
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         results_df.to_csv(DATA_DIR / f'cv_{n_folds}fold_results_{timestamp}.csv', index=False)
@@ -746,18 +746,18 @@ class ImprovedBayesianExperiment:
         return results_df, cv_summary
 
     def run_progressive_information_experiment(self):
-        """段階的情報提供実験 - IPD版（改良：同じデータサブセット使用）"""
+        """Progressive information provision experiment - IPD version (Improved: using identical data subsets)"""
         print("\n" + "="*60)
-        print("IPD段階的情報提供実験開始（同一データサブセット使用）")
+        print("IPD progressive information provision experiment started (using identical data subsets)")
         print("="*60)
         
         results = []
         sample_sizes = EXPERIMENT_CONFIG["sample_sizes"]
         
         for sample_size in sample_sizes:
-            print(f"\n--- サイト数 {sample_size} ---")
+            print(f"\n--- Number of sites {sample_size} ---")
             
-            # 全モデルで同じ施設を選択（Bergstra & Bengio 2012準拠）
+            # Select same sites for all models (Bergstra & Bengio 2012 compliant)
             available_sites = self.patient_data['site_number'].unique()
             np.random.seed(EXPERIMENT_CONFIG["random_seed"])
             selected_sites = np.random.choice(
@@ -766,7 +766,7 @@ class ImprovedBayesianExperiment:
                 replace=False
             )
             
-            print(f"選択された施設: {selected_sites[:5]}..." if len(selected_sites) > 5 else f"選択された施設: {selected_sites}")
+            print(f"Selected sites: {selected_sites[:5]}..." if len(selected_sites) > 5 else f"Selected sites: {selected_sites}")
             
             # Meta-analytical model
             _, trace_meta, sample_data = self.run_model_meta_analytical(
@@ -784,7 +784,7 @@ class ImprovedBayesianExperiment:
                 'lpd': perf_meta['lpd']
             })
             
-            # GPT-4 Blind model (同じデータサブセット)
+            # GPT-4 Blind model (same data subset)
             _, trace_gpt_blind, _ = self.run_model_gpt4(
                 selected_sites=selected_sites,
                 n_sites=sample_size
@@ -800,7 +800,7 @@ class ImprovedBayesianExperiment:
                 'lpd': perf_gpt_blind['lpd']
             })
             
-            # GPT-4 Disease-Informed model (同じデータサブセット)
+            # GPT-4 Disease-Informed model (same data subset)
             _, trace_gpt_disease, _ = self.run_model_gpt4_disease(
                 selected_sites=selected_sites,
                 n_sites=sample_size
@@ -816,14 +816,14 @@ class ImprovedBayesianExperiment:
                 'lpd': perf_gpt_disease['lpd']
             })
             
-            print(f"患者数: {perf_meta['n_patients']}")
+            print(f"Number of patients: {perf_meta['n_patients']}")
             print(f"Meta-analytical      - MAE: {perf_meta['mae']:.4f}, RMSE: {perf_meta['rmse']:.4f}, LPD: {perf_meta['lpd']:.4f}")
             print(f"GPT-4 Blind          - MAE: {perf_gpt_blind['mae']:.4f}, RMSE: {perf_gpt_blind['rmse']:.4f}, LPD: {perf_gpt_blind['lpd']:.4f}")
             print(f"GPT-4 Disease-Informed - MAE: {perf_gpt_disease['mae']:.4f}, RMSE: {perf_gpt_disease['rmse']:.4f}, LPD: {perf_gpt_disease['lpd']:.4f}")
         
         results_df = pd.DataFrame(results)
         
-        # タイムスタンプ付きファイル名で保存
+        # Save with timestamped filename
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         results_df.to_csv(DATA_DIR / f'ipd_progressive_information_fair_comparison_{timestamp}.csv', index=False)
@@ -831,10 +831,10 @@ class ImprovedBayesianExperiment:
         return results_df
 
     def run_model_barmaz_menard_exact(self, n_sites=20):
-        """Barmaz & Ménard (2021)の正確な再現 - IPD版"""
+        """Barmaz & Ménard (2021) exact replication - IPD version"""
         print(f"\n=== Barmaz & Ménard (2021) Exact IPD Replication (n_sites={n_sites}) ===")
         
-        # 施設をランダムサンプリング
+        # Random sampling of sites
         available_sites = self.patient_data['site_number'].unique()
         np.random.seed(EXPERIMENT_CONFIG["random_seed"])
         selected_sites = np.random.choice(
@@ -843,38 +843,38 @@ class ImprovedBayesianExperiment:
             replace=False
         )
         
-        # 選択された施設の患者レベルデータを取得
+        # Obtain patient-level data from selected sites
         patient_level_data = self.patient_data[
             self.patient_data['site_number'].isin(selected_sites)
         ]
         
-        # IPDモデル用データ準備
+        # Data preparation for IPD model
         sites = patient_level_data['site_number'].values
         observed_ae = patient_level_data['ae_count_cumulative'].values
         unique_sites, sites_idx = np.unique(sites, return_inverse=True)
         n_sites = len(unique_sites)
         
-        print(f"選択された施設数: {n_sites}")
-        print(f"患者数: {len(patient_level_data)}")
-        print(f"AE範囲: {observed_ae.min()} - {observed_ae.max()}")
+        print(f"Number of selected sites: {n_sites}")
+        print(f"Number of patients: {len(patient_level_data)}")
+        print(f"AE range: {observed_ae.min()} - {observed_ae.max()}")
         
         with pm.Model() as model_barmaz:
-            # Barmaz & Ménard (2021) 事前分布
+            # Barmaz & Ménard (2021) prior distribution
             alpha_study = pm.Exponential('alpha_study', lam=0.1)
             beta_study = pm.Exponential('beta_study', lam=0.1)
             
-            # 施設ごとの患者レベルAE率
+            # Patient-level AE rates by site
             lambda_sites = pm.Gamma('lambda_sites',
                                   alpha=alpha_study,
                                   beta=beta_study,
                                   shape=n_sites)
             
-            # IPD尤度: 患者レベルの尤度
+            # IPD likelihood: Patient-level likelihood
             ae_counts = pm.Poisson('ae_counts',
                                  mu=lambda_sites[sites_idx],
                                  observed=observed_ae)
             
-            # サンプリング
+            # Sampling
             trace_barmaz = pm.sample(
                 EXPERIMENT_CONFIG["mcmc_samples"],
                 tune=EXPERIMENT_CONFIG["mcmc_tune"],
@@ -884,33 +884,34 @@ class ImprovedBayesianExperiment:
             )
         
         return model_barmaz, trace_barmaz, patient_level_data
+
 def main():
-    """メイン実験実行 - 改良版（同一データサブセット使用）"""
-    print("改良版ベイズ事前分布比較実験 (Fair Comparison with Same Data Subsets)")
-    print(f"結果保存先: {RESULTS_DIR}")
+    """Main experiment execution - Improved version (using identical data subsets)"""
+    print("Improved version Bayesian prior distribution comparison experiment (Fair Comparison with Same Data Subsets)")
+    print(f"Results save destination: {RESULTS_DIR}")
     
-    # 実験実行
+    # Execute experiment
     experiment = ImprovedBayesianExperiment()
     
-    # K-fold Cross-Validation実験（権威ある手法）
+    # K-fold Cross-Validation experiment (authoritative method)
     print("\n" + "="*60)
-    print("K-fold Cross-Validation実験 (Hastie et al. 2009準拠)")
+    print("K-fold Cross-Validation experiment (Hastie et al. 2009 compliant)")
     print("="*60)
     cv_results_df, cv_summary = experiment.run_cv_experiment(n_folds=5)
     
-    # 段階的情報提供実験（同一データサブセット使用）
+    # Progressive information provision experiment (using identical data subsets)
     print("\n" + "="*60)
-    print("段階的情報提供実験（公平な比較）")
+    print("Progressive information provision experiment (fair comparison)")
     print("="*60)
     progressive_results_df = experiment.run_progressive_information_experiment()
     
-    print(f"\n実験完了！結果は {RESULTS_DIR} に保存されました。")
-    print("\n主要な改良点:")
-    print("- K-fold Cross-Validation による公平な比較")
-    print("- 全モデルで同一データサブセット使用")
-    print("- 層別交差検証による偏りの除去")
-    print("- マジックナンバー完全排除のプロンプト")
-    print("- 統計的に厳密な評価手法の採用")
+    print(f"\nExperiment completed! Results saved in {RESULTS_DIR}.")
+    print("\nKey improvements:")
+    print("- Fair comparison using K-fold Cross-Validation")
+    print("- Using identical data subsets for all models")
+    print("- Bias elimination through stratified cross-validation")
+    print("- Complete magic number elimination from prompts")
+    print("- Adoption of statistically rigorous evaluation methods")
     
     return cv_results_df, cv_summary, progressive_results_df
 

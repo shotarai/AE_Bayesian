@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 """
-改良版ベイズ事前分布比較実験のランナースクリプト
+Improved Bayesian Prior Comparison Experiment Runner Script
 """
 
 import sys
 from pathlib import Path
 
-# プロジェクトルートをPythonパスに追加
+# Add project root to Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
 from ae_exp2.experiments.main import ImprovedBayesianExperiment
 
 def main():
-    """メイン実行関数"""
+    """Main execution function"""
     print("=" * 60)
-    print("改良版ベイズ事前分布比較実験")
+    print("Improved Bayesian Prior Comparison Experiment")
     print("=" * 60)
     
-    # 実験インスタンスを作成
+    # Create experiment instance
     experiment = ImprovedBayesianExperiment()
     
-    # 実験実行
+    # Execute experiment
     results = experiment.run_baseline_comparison()
     
-    print("\n実験完了！結果は results ディレクトリに保存されました。")
+    print("\nExperiment completed! Results saved in results directory.")
     
     return results
 
