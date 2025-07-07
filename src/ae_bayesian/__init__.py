@@ -1,5 +1,5 @@
 """
-ae_exp2: Bayesian Prior Comparison Study
+ae_bayesian: Bayesian Prior Comparison Study
 
 This package provides tools for conducting comparative studies of prior distributions in Bayesian statistics.
 It compares the performance of Meta-analytical priors and GPT-4 generated priors,

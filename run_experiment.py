@@ -10,7 +10,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
-from ae_exp2.experiments.main import ImprovedBayesianExperiment
+from ae_bayesian.experiments.main import ImprovedBayesianExperiment
 
 def main():
     """Main execution function"""

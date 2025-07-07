@@ -334,12 +334,12 @@ def main():
     """Main execution function for statistical analysis"""
     
     # File paths
-    cv_results_path = "/yourpass/AE_exp2/results/data/cv_5fold_results_20250707_152914.csv"
-    cv_summary_path = "/yourpass/AE_exp2/results/data/cv_5fold_summary_20250707_152914.csv"
+    cv_results_path = "/yourpass/AE_Bayesian/results/data/cv_5fold_results_20250707_152914.csv"
+    cv_summary_path = "/yourpass/AE_Bayesian/results/data/cv_5fold_summary_20250707_152914.csv"
     
     # Create output directories if they don't exist
-    plots_dir = "/yourpass/AE_exp2/results/plots"
-    reports_dir = "/yourpass/AE_exp2/results/reports"
+    plots_dir = "/yourpass/AE_Bayesian/results/plots"
+    reports_dir = "/yourpass/AE_Bayesian/results/reports"
     os.makedirs(plots_dir, exist_ok=True)
     os.makedirs(reports_dir, exist_ok=True)
     

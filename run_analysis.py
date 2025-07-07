@@ -10,7 +10,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
-from ae_exp2.analysis.improved_analysis import ImprovedPriorComparisonAnalysis
+from ae_bayesian.analysis.improved_analysis import ImprovedPriorComparisonAnalysis
 
 def main():
     """Main execution function"""

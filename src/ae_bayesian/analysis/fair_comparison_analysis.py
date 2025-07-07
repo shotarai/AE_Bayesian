@@ -25,7 +25,7 @@ plt.rcParams['font.family'] = ['DejaVu Sans', 'Hiragino Sans', 'Yu Gothic', 'Mei
 class FairComparisonAnalyzer:
     """Fair comparison experiment results analysis class"""
     
-    def __init__(self, results_dir: str = "/yourpass/AE_exp2/results/data"):
+    def __init__(self, results_dir: str = "/yourpass/AE_Bayesian/results/data"):
         self.results_dir = Path(results_dir)
         self.cv_summary = None
         self.cv_detailed = None

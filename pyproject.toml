@@ -31,4 +31,4 @@ dev-dependencies = []
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ae_exp2"]
+packages = ["src/ae_bayesian"]

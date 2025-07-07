@@ -11,7 +11,7 @@ RESULTS_DIR = PROJECT_ROOT / "results"
 PLOTS_DIR = RESULTS_DIR / "plots"
 DATA_DIR = RESULTS_DIR / "data"
 REPORTS_DIR = RESULTS_DIR / "reports"
-CONFIG_DIR = PROJECT_ROOT / "src" / "ae_exp2" / "config"
+CONFIG_DIR = PROJECT_ROOT / "src" / "ae_bayesian" / "config"
 
 # Create directories
 for dir_path in [RESULTS_DIR, PLOTS_DIR, DATA_DIR, REPORTS_DIR, CONFIG_DIR]:

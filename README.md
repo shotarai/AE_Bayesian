@@ -114,9 +114,9 @@ Expected AE Rate Range: "5-15 adverse events per patient"
 ## File Structure
 
 ### Experimental Code
-- `src/ae_exp2/experiments/main.py` - K-fold CV experiments
-- `src/ae_exp2/config/experiment_config.py` - Experimental configuration
-- `src/ae_exp2/analysis/statistical_analysis.py` - Statistical analysis
+- `src/ae_bayesian/experiments/main.py` - K-fold CV experiments
+- `src/ae_bayesian/config/experiment_config.py` - Experimental configuration
+- `src/ae_bayesian/analysis/statistical_analysis.py` - Statistical analysis
 
 ### Data and Results  
 - `data.csv` - AE data from 125 sites
@@ -142,17 +142,17 @@ cp .env.example .env
 # Set OpenAI API key in .env
 
 # Run K-fold CV experiments
-rye run python src/ae_exp2/experiments/main.py
+rye run python src/ae_bayesian/experiments/main.py
 
 # Run statistical analysis
-rye run python src/ae_exp2/analysis/statistical_analysis.py
+rye run python src/ae_bayesian/analysis/statistical_analysis.py
 ```
 
 ## Project Structure
 
 ```
-ae_exp2/
-├── src/ae_exp2/           # Main package
+ae_bayesian/
+├── src/ae_bayesian/           # Main package
 │   ├── experiments/       # Experiment modules
 │   │   └── main.py       # K-fold CV experiments
 │   ├── analysis/          # Analysis modules
