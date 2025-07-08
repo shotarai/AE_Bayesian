@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 from typing import Dict, List, Tuple
+from pathlib import Path
 import warnings
 import os
 warnings.filterwarnings('ignore')
@@ -333,18 +334,34 @@ class BayesianPriorAnalyzer:
 def main():
     """Main execution function for statistical analysis"""
     
-    # File paths
-    cv_results_path = "/yourpass/AE_Bayesian/results/data/cv_5fold_results_20250707_152914.csv"
-    cv_summary_path = "/yourpass/AE_Bayesian/results/data/cv_5fold_summary_20250707_152914.csv"
+    # Get project root directory
+    current_dir = Path(__file__).parent
+    project_root = current_dir.parent.parent.parent
+    results_dir = project_root / "results" / "data"
+    
+    # Find latest result files
+    cv_results_files = list(results_dir.glob("cv_5fold_results_*.csv"))
+    cv_summary_files = list(results_dir.glob("cv_5fold_summary_*.csv"))
+    
+    if not cv_results_files or not cv_summary_files:
+        print("No CV results files found. Please run the experiment first.")
+        return
+    
+    # Use the latest files
+    cv_results_path = max(cv_results_files, key=lambda x: x.stat().st_mtime)
+    cv_summary_path = max(cv_summary_files, key=lambda x: x.stat().st_mtime)
+    
+    print(f"Using CV results: {cv_results_path.name}")
+    print(f"Using CV summary: {cv_summary_path.name}")
     
     # Create output directories if they don't exist
-    plots_dir = "/yourpass/AE_Bayesian/results/plots"
-    reports_dir = "/yourpass/AE_Bayesian/results/reports"
-    os.makedirs(plots_dir, exist_ok=True)
-    os.makedirs(reports_dir, exist_ok=True)
+    plots_dir = project_root / "results" / "plots"
+    reports_dir = project_root / "results" / "reports"
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir.mkdir(parents=True, exist_ok=True)
     
     # Initialize analyzer
-    analyzer = BayesianPriorAnalyzer(cv_results_path, cv_summary_path)
+    analyzer = BayesianPriorAnalyzer(str(cv_results_path), str(cv_summary_path))
     
     # Perform statistical tests
     print("Performing statistical significance tests...")

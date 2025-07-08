@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 from pathlib import Path
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -25,8 +26,14 @@ plt.rcParams['font.family'] = ['DejaVu Sans', 'Hiragino Sans', 'Yu Gothic', 'Mei
 class FairComparisonAnalyzer:
     """Fair comparison experiment results analysis class"""
     
-    def __init__(self, results_dir: str = "/yourpass/AE_Bayesian/results/data"):
-        self.results_dir = Path(results_dir)
+    def __init__(self, results_dir: str = None):
+        if results_dir is None:
+            # プロジェクトルートから相対パスで取得
+            current_dir = Path(__file__).parent
+            project_root = current_dir.parent.parent.parent
+            self.results_dir = project_root / "results" / "data"
+        else:
+            self.results_dir = Path(results_dir)
         self.cv_summary = None
         self.cv_detailed = None
         self.progressive_results = None
