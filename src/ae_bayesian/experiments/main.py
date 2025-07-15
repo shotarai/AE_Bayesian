@@ -902,7 +902,7 @@ class ImprovedBayesianExperiment:
         return model_barmaz, trace_barmaz, patient_level_data
 
     def get_gpt4_prior_multiple_runs(self, prompt_type="blind", n_runs=None, temperature=None):
-        """複数回実行してGPT-4事前分布を取得・集約"""
+        """Execute multiple times to obtain and aggregate GPT-4 prior distributions"""
         if n_runs is None:
             n_runs = GPT4_CONFIG.get("n_runs_per_cv_fold", 5)
         if temperature is None:
@@ -925,7 +925,7 @@ class ImprovedBayesianExperiment:
             
             all_responses.append(response)
             
-            # フォールバックでない場合のみ有効とみなす
+            # Consider as valid only if not fallback
             if not response.get('is_fallback', False):
                 valid_responses.append(response)
         
@@ -933,10 +933,10 @@ class ImprovedBayesianExperiment:
             print("No valid responses obtained, using fallback")
             return MODEL_CONFIG["gpt4_fallback"]
         
-        # 複数応答の集約
+        # Aggregate multiple responses
         aggregated_prior = self._aggregate_gpt4_responses(valid_responses)
         
-        # メタデータの追加
+        # Add metadata
         aggregated_prior['aggregation_metadata'] = {
             'n_total_runs': n_runs,
             'n_valid_responses': len(valid_responses),
@@ -948,10 +948,10 @@ class ImprovedBayesianExperiment:
         return aggregated_prior
     
     def _aggregate_gpt4_responses(self, responses):
-        """複数のGPT-4応答を集約"""
+        """Aggregate multiple GPT-4 responses"""
         print(f"\n--- Aggregating {len(responses)} responses ---")
         
-        # パラメータの抽出
+        # Extract parameters
         alpha_params = []
         beta_params = []
         
@@ -967,7 +967,7 @@ class ImprovedBayesianExperiment:
             print("No valid parameters found, using fallback")
             return MODEL_CONFIG["gpt4_fallback"]
         
-        # 統計情報の計算
+        # Calculate statistical information
         alpha_mean = np.mean(alpha_params)
         alpha_std = np.std(alpha_params)
         beta_mean = np.mean(beta_params)
@@ -976,15 +976,15 @@ class ImprovedBayesianExperiment:
         print(f"Alpha parameters: mean={alpha_mean:.4f}, std={alpha_std:.4f}, CV={alpha_std/alpha_mean:.4f}")
         print(f"Beta parameters: mean={beta_mean:.4f}, std={beta_std:.4f}, CV={beta_std/beta_mean:.4f}")
         
-        # 集約方法の選択（平均値を使用）
+        # Select aggregation method (use mean value)
         aggregated_alpha = alpha_mean
         aggregated_beta = beta_mean
         
-        # 信頼度レベルの集約
+        # Aggregate confidence levels
         confidence_levels = [r.get('confidence_level', 'medium') for r in responses]
         aggregated_confidence = max(set(confidence_levels), key=confidence_levels.count)
         
-        # 理由の統合
+        # Integrate reasoning
         all_reasoning = [r.get('reasoning', '') for r in responses]
         aggregated_reasoning = f"Aggregated from {len(responses)} runs. Common themes: " + "; ".join(all_reasoning[:2])
         

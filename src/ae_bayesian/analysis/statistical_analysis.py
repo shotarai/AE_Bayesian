@@ -372,17 +372,17 @@ def main():
     analyzer.create_comprehensive_plots(save_dir=plots_dir)
     
     # Generate statistical report
-    print("統計解析レポートを生成中...")
+    print("Generating statistical analysis report...")
     report = analyzer.generate_statistical_report(
         stats_results, 
         save_path=f"{reports_dir}/statistical_analysis_report.txt"
     )
     
     print("=" * 60)
-    print("統計解析が完了しました！")
+    print("Statistical analysis completed!")
     print("=" * 60)
-    print(f"レポート保存先: {reports_dir}/")
-    print(f"プロット保存先: {plots_dir}/")
+    print(f"Reports saved to: {reports_dir}/")
+    print(f"Plots saved to: {plots_dir}/")
     
     return stats_results, report
 
