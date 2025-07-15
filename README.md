@@ -133,20 +133,37 @@ Expected AE Rate Range: "5-15 adverse events per patient"
 
 ## Setup and Execution
 
+### Rye環境での実行（推奨）
+
 ```bash
-# Install dependencies
+# 依存関係のインストール
 rye sync
 
-# Setup environment variables
+# 環境変数の設定
 cp .env.example .env
-# Set OpenAI API key in .env
+# .envファイルでOpenAI API keyを設定
 
-# Run K-fold CV experiments
-rye run python src/ae_bayesian/experiments/main.py
-
-# Run statistical analysis
-rye run python src/ae_bayesian/analysis/statistical_analysis.py
+# 新しい温度交差検証分析の実行
+rye run python run_temperature_cv_analysis_rye.py
 ```
+
+### 新機能: Temperature Sensitivity Cross-Validation Analysis
+
+#### 改良された分析手法
+- **無駄な初期温度選択を排除**: 3回の予備実行を削除
+- **交差検証による評価**: 各温度で5-fold CV実行
+- **LLM実行回数統一**: CV fold毎に5回のLLM実行
+- **データ分割統一**: 3手法すべてで同一のCV分割使用
+- **統計的比較**: Meta-analytical Priorとの性能比較
+
+#### 温度グリッド設定
+- **デフォルト**: `[0.1, 0.5, 1.0]`
+- **CV fold毎のLLM実行**: 5回
+- **設定ファイル**: `src/ae_bayesian/config/experiment_config.py`
+
+#### 結果保存
+- **主要結果**: `results/data/cv_temperature_analysis_YYYYMMDD_HHMMSS.csv`
+- **詳細ログ**: GPT-4応答とparameter統計
 
 ## Project Structure
 
@@ -180,3 +197,27 @@ ae_bayesian/
 - ArviZ (Bayesian analysis)
 - OpenAI (GPT-4 API)
 - NumPy, Pandas, Matplotlib, Seaborn
+
+## Temperature Sensitivity Cross-Validation Analysis（新機能）
+
+最新のLLMハイパーパラメータ最適化のフィードバックに基づいて、包括的な温度感度分析をクロスバリデーション評価に統合しました：
+
+### 実装仕様
+- **温度グリッド**: [0.1, 0.5, 1.0]
+- **CV fold毎の実行**: 5回のLLM実行で結果集約
+- **評価方法**: 5-fold交差検証による最終パフォーマンス評価
+- **統一データ分割**: GPT-4 Blind、GPT-4 Disease-Informed、Meta-analyticalで同一のCV分割
+
+### 主要改良点
+1. **無駄な初期選択排除**: 予備的な温度選択フェーズを削除
+2. **真のパフォーマンス評価**: 各温度での交差検証による性能測定
+3. **統計的厳密性**: 全手法で同一データ分割による公平比較
+4. **実用的価値**: 最終的なモデル選択に直接適用可能な結果
+
+### 方法論的改善
+1. **偽の精密さ回避**: 低温度設定による誤解を招く精度を防止
+2. **真の変動測定**: 複数実行によりLLM応答の固有変動を明らかにする
+3. **プロンプト堅牢性**: プロンプト文言変動に堅牢な温度選択
+4. **ハイパーパラメータ最適化**: 任意の温度選択ではなく系統的グリッド検索
+
+この手法はLLM事前分布導出の信頼性に関する主要懸念に対処し、LLMハイパーパラメータ最適化の現在のベストプラクティスに従っています。

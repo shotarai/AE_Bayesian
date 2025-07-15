@@ -39,14 +39,18 @@ EXPERIMENT_CONFIG = {
     "mcmc_samples": 1000,
     "mcmc_tune": 1000,
     "random_seed": 42,
-    "n_experiments": 5  # Multiple runs for stability verification
+    "n_experiments": 5,  # Multiple runs for stability verification
+    "enable_temperature_sensitivity": True,  # Enable temperature sensitivity analysis
+    "aggregate_multiple_runs": True  # Enable multiple run aggregation
 }
 
 # GPT-4 configuration
 GPT4_CONFIG = {
     "model": "gpt-4",
     "max_tokens": 1500,
-    "temperature": 0.1,  # Set low for more consistent responses
+    "temperature": 1.0,  # Default temperature for natural variation
+    "temperature_grid": [0.1, 0.5, 1.0],  # For cross-validation analysis
+    "n_runs_per_cv_fold": 5,  # 5 LLM executions per CV fold per temperature
     "max_retries": 3,
     "timeout": 30
 }
